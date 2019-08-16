@@ -1,0 +1,84 @@
+# Ansible - 3par
+
+
+## Prerequisite
+- Install Ansible on Ansible Server
+
+## Notes
+playbooks on this site:
+https://github.com/HewlettPackard/hpe3par_ansible_module
+
+## setup
+### 3par ssh key authentication
+1. create ssh key (Ansible Server)
+    ```$ ssh-keygen –t rsa –b 2048
+2. set public key for authentication (3par)
+    ```% setsshkey
+3. test (Ansible server)
+    ```$ ssh -l <3par username> -i <private key> <3par host/ip-address>
+
+### proxy(Ansible server)
+env |grep prox
+no_proxy=127.0.0.1,localhost,<add-3par-proxy-ip-address>
+
+### enable 3par REST API
+1. enable API service
+    3PARLAB1 cli% showwsapi
+    -Service- -State-- -HTTP_State- HTTP_Port -HTTPS_State- HTTPS_Port -Version- -----------API_URL------------
+    Disabled  Inactive Disabled          8008 Enabled             8080 1.5.3     https://<3par-ip-address>:8080/api/v1
+    3PARLAB1 cli% setwsapi -http enable
+    WSAPI Server configuration set successfully.
+    3PARLAB1 cli% showwsapi
+    -Service- -State-- -HTTP_State- HTTP_Port -HTTPS_State- HTTPS_Port -Version- -----------API_URL------------
+    Disabled  Inactive Enabled           8008 Enabled             8080 1.5.3     https://<3par-ip-address>:8080/api/v1
+2. start API service
+    3PARLAB1 cli% startwsapi
+    3PARLAB1 cli% The Web Services API Server will start shortly.
+    3PARLAB1 cli% showwsapi
+    -Service- -State- -HTTP_State- HTTP_Port -HTTPS_State- HTTPS_Port -Version- -----------API_URL------------
+    Enabled   Active  Enabled           8008 Enabled             8080 1.5.3     https://<3par-ip-address>:8080/api/v1
+
+### ansible setup (all tasks to Ansible Server)
+1. hosts
+    write 3par host/ip-address in ansible hosts file
+    ```
+    [3par]
+    <3par-ip-address>
+
+    [3par:vars]
+    ansible_user=3paradm
+    ansible_ssh_private_key_file=/home/newgen/.ssh/id_rsa
+    ```
+
+2. clone 3par module
+    ```mkdir $HOME/playbooks
+    ```cd $HOME/playbooks
+    ```git clone https://github.com/HewlettPackard/hpe3par_ansible_module.git
+
+3. install pip
+    ```sudo yum install epel-release
+    ```sudo yum install python-pip
+    ```pip --version
+
+4. install 3par-sdk
+    ```sudo pip install hpe3par_sdk
+
+5. set library path to ansible.conf
+    ```ansible.conf
+        library=/home/<username>/playbook/hpe3par_ansible_module/Modules
+
+## Smoke Test
+### modify property files
+All files in /home/newgen/playbook/hpe3par_ansible_module/playbooks/properties
+1. storage_system_properties.yml
+2. volume_properties.yml
+
+### test playbook
+1. exec playbook
+    ```cd /home/newgen/playbook/hpe3par_ansible_module
+    ```ansible-playbook -i hosts ./playbooks/volume_playbook.yml
+** this playbook will create volume -> modify volume -> delete volume
+
+## Additional Notes
+- If you meet "Cannot connect to proxy" error, see proxy settings
+
